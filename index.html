@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ImpSci Navigator Template</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- D3.js -->
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        msk: { 
+                            blue: '#007CBA', 
+                            darkblue: '#005587', 
+                            navy: '#1D252D', 
+                            orange: '#F26522', 
+                            light: '#E6F2F8'
+                        }
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02)',
+                        'card': '0 0 0 1px rgba(0,0,0,0.03), 0 2px 8px rgba(0,0,0,0.04)',
+                        'float': '0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025)'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        [x-cloak] { display: none !important; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+        
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #007CBA;
+            border: 2px solid #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            margin-top: -6px;
+            cursor: grab;
+            transition: transform 0.1s;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #E2E8F0;
+            border-radius: 2px;
+        }
+
+        .fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease, transform 0.3s ease; }
+        .fade-enter-from, .fade-leave-to { opacity: 0; transform: translateY(10px); }
+        
+        .tooltip { position: relative; display: inline-flex; }
+        .tooltip .tooltip-content {
+            visibility: hidden;
+            width: 200px;
+            background-color: #1E293B;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 50;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.2s;
+            font-size: 0.75rem;
+            line-height: 1.4;
+            pointer-events: none;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .tooltip:hover .tooltip-content { visibility: visible; opacity: 1; }
+
+        @media print {
+            body { background: white; }
+            header, .no-print { display: none !important; }
+            .print-only-visible { display: block !important; }
+            .shadow-card { box-shadow: none !important; border: 1px solid #ccc; }
+            .page-break { page-break-before: always; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased h-full flex flex-col font-sans" x-data="impSciApp" x-cloak @keydown.escape="closeAllModals()">
+
+    <!-- HEADER -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-soft">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center gap-3">
+                    <div class="bg-gradient-to-br from-msk-blue to-msk-darkblue text-white w-10 h-10 rounded-lg shadow-sm flex items-center justify-center">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                    </div>
+                    <div class="leading-tight">
+                        <h1 class="font-bold text-lg text-msk-navy tracking-tight">Implementation Navigator</h1>
+                        <p class="text-[11px] text-slate-500 font-medium uppercase tracking-wider">Planning & Fidelity Tools</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-6">
+                    <div class="hidden md:flex flex-col items-end w-40">
+                        <div class="flex justify-between w-full mb-1">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Plan Progress</span>
+                            <span class="text-[10px] font-bold text-msk-blue" x-text="progress + '%'"></span>
+                        </div>
+                        <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div class="h-full bg-msk-blue transition-all duration-1000 ease-out" :style="`width: ${progress}%`"></div>
+                        </div>
+                    </div>
+                    <button @click="downloadJSON()" class="group relative inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 hover:text-msk-blue hover:border-msk-blue transition-all duration-200">
+                        <svg class="w-4 h-4 mr-2 text-slate-400 group-hover:text-msk-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        Export Data
+                    </button>
+                </div>
+            </div>
+            
+            <nav class="flex -mb-px overflow-x-auto no-scrollbar space-x-1 sm:space-x-8" aria-label="Tabs">
+                <template x-for="(phase, index) in phases" :key="phase.id">
+                    <button @click="currentPhase = phase.id"
+                        :class="currentPhase === phase.id ? 'border-msk-blue text-msk-blue' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'"
+                        class="group inline-flex items-center py-4 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap transition-colors duration-200">
+                        <div class="flex items-center justify-center w-6 h-6 rounded-full mr-2 text-[10px] font-bold transition-colors"
+                             :class="currentPhase === phase.id ? 'bg-msk-blue text-white' : (isPhaseComplete(phase.id) ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-500')">
+                             <span x-show="!isPhaseComplete(phase.id)" x-text="index + 1"></span>
+                             <svg x-show="isPhaseComplete(phase.id)" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
+                        </div>
+                        <span x-text="phase.label"></span>
+                    </button>
+                </template>
+            </nav>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+
+        <!-- PHASE 1: EXPLORATION -->
+        <div x-show="currentPhase === 'exploration'" x-transition:enter="fade-enter-active" x-transition:enter-start="fade-enter-from" class="space-y-6">
+            <div class="bg-white rounded-xl shadow-card border border-slate-200 p-6">
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                            <span class="w-1 h-6 bg-msk-blue rounded-full"></span>
+                            Site Configuration
+                        </h2>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 uppercase mb-1.5">Project/Site Name</label>
+                                <input type="text" x-model="project.name" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-msk-blue focus:ring-msk-blue sm:text-sm py-2 px-3" placeholder="Enter site identifier...">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 uppercase mb-1.5">Intervention Arms</label>
+                                <div class="flex flex-wrap gap-2">
+                                    <template x-for="arm in availableArms" :key="arm.id">
+                                        <label class="cursor-pointer group">
+                                            <input type="checkbox" :value="arm.id" x-model="project.arms" @change="updateCoreComponentsFromArms" class="peer sr-only">
+                                            <div class="px-3 py-1.5 rounded-md border border-slate-200 bg-slate-50 text-slate-600 text-xs font-medium transition-all peer-checked:bg-msk-light peer-checked:text-msk-darkblue peer-checked:border-msk-blue group-hover:bg-white shadow-sm">
+                                                <span x-text="arm.label"></span>
+                                            </div>
+                                        </label>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                         <label class="block text-xs font-semibold text-slate-500 uppercase mb-1.5">Initial Context Assessment</label>
+                         <textarea x-model="project.description" rows="6" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-msk-blue focus:ring-msk-blue sm:text-sm py-2 px-3 resize-none bg-slate-50 focus:bg-white" placeholder="Describe clinical workflow, population needs, and known constraints..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Core Components -->
+                <div class="lg:col-span-4 flex flex-col gap-6">
+                      <div class="bg-white rounded-xl shadow-card border border-slate-200 flex flex-col">
+                        <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                            <h3 class="font-bold text-slate-700 text-sm">Core Components</h3>
+                            <button @click="showFidelityModal = true" class="text-xs text-msk-blue font-semibold hover:text-msk-darkblue">Define Plan</button>
+                        </div>
+                        <div class="p-4 space-y-3 bg-slate-50/30">
+                            <template x-for="comp in project.coreComponents" :key="comp.name">
+                                <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-shadow group">
+                                    <div class="flex justify-between items-start mb-1">
+                                        <div class="font-semibold text-sm text-slate-800" x-text="comp.name"></div>
+                                        <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500" x-text="comp.dimension"></span>
+                                    </div>
+                                    <div class="text-xs text-slate-500 mb-2" x-text="comp.func"></div>
+                                    <div class="flex items-center gap-2 text-[10px] text-slate-400 font-medium">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                                        <span x-text="comp.measurement"></span>
+                                        <span class="text-emerald-600 font-bold ml-auto" x-text="comp.threshold"></span>
+                                    </div>
+                                </div>
+                            </template>
+                            <div x-show="project.coreComponents.length === 0" class="flex flex-col items-center justify-center h-40 text-slate-400 text-sm">
+                                <svg class="w-8 h-8 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                                No components defined
+                            </div>
+                        </div>
+                      </div>
+                </div>
+
+                <!-- Implementation Team & Timeline -->
+                <div class="lg:col-span-4 flex flex-col gap-6">
+                    <div class="bg-white rounded-xl shadow-card border border-slate-200 p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-bold text-slate-700 text-sm">Implementation Team</h3>
+                            <button @click="addTeamMember" class="w-6 h-6 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400 hover:text-msk-blue hover:border-msk-blue">+</button>
+                        </div>
+                        <div class="space-y-3 mb-8">
+                            <template x-for="(member, index) in project.team" :key="index">
+                                <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors group">
+                                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 text-slate-600 flex items-center justify-center font-bold text-xs" x-text="member.name ? member.name.charAt(0).toUpperCase() : '?'"></div>
+                                    <div class="flex-1 min-w-0">
+                                        <input type="text" x-model="member.name" class="w-full bg-transparent border-none p-0 text-sm font-semibold text-slate-700 focus:ring-0 placeholder-slate-300" placeholder="Name">
+                                        <input type="text" x-model="member.role" class="w-full bg-transparent border-none p-0 text-xs text-slate-500 focus:ring-0 placeholder-slate-300" placeholder="Role">
+                                    </div>
+                                    <button @click="removeTeamMember(index)" class="text-slate-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">&times;</button>
+                                </div>
+                            </template>
+                        </div>
+
+                        <div class="border-t border-slate-100 pt-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="font-bold text-slate-700 text-sm">Timeline</h3>
+                                <button @click="addTimelineItem" class="w-6 h-6 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400 hover:text-msk-blue hover:border-msk-blue">+</button>
+                            </div>
+                            <div class="space-y-0 relative before:absolute before:inset-y-0 before:left-3.5 before:w-0.5 before:bg-slate-100">
+                                <template x-for="(item, index) in project.timeline" :key="index">
+                                    <div class="relative pl-8 pb-4 group last:pb-0">
+                                        <div class="absolute left-2 top-1.5 w-3.5 h-3.5 rounded-full border-2 border-white shadow-sm z-10 bg-msk-blue"></div>
+                                        <div class="flex flex-col">
+                                            <input type="text" x-model="item.desc" class="w-full bg-transparent border-none p-0 text-sm font-medium text-slate-700 focus:ring-0 placeholder-slate-400" placeholder="Milestone">
+                                            <div class="flex items-center gap-2 mt-0.5">
+                                                <input type="date" x-model="item.date" class="bg-transparent border-none p-0 text-[10px] text-slate-400 focus:ring-0 w-24">
+                                                <button @click="removeTimelineItem(index)" class="text-slate-300 hover:text-red-400 opacity-0 group-hover:opacity-100 text-xs transition-opacity">&times;</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Readiness Gauges -->
+                <div class="lg:col-span-4">
+                    <div class="bg-white rounded-xl shadow-card border border-slate-200 p-6 sticky top-24">
+                        <h3 class="font-bold text-slate-700 text-sm mb-6 text-center">Readiness Assessment</h3>
+                        
+                        <div class="relative w-40 h-40 mx-auto mb-6 flex items-center justify-center">
+                            <svg class="w-full h-full transform -rotate-90">
+                                <circle cx="80" cy="80" r="70" stroke="currentColor" stroke-width="12" fill="transparent" class="text-slate-100" />
+                                <circle cx="80" cy="80" r="70" stroke="currentColor" stroke-width="12" fill="transparent" 
+                                        :class="readinessColorClass"
+                                        class="transition-all duration-1000 ease-out"
+                                        :stroke-dasharray="440" 
+                                        :stroke-dashoffset="440 - (440 * readinessScore / 100)"
+                                        stroke-linecap="round" />
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <span class="text-3xl font-black text-slate-800" x-text="readinessScore + '%'"></span>
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Aggregate Score</span>
+                            </div>
+                        </div>
+
+                        <div class="space-y-5">
+                            <template x-for="metric in readinessMetrics" :key="metric.id">
+                                <div class="group">
+                                    <div class="flex justify-between items-end mb-2">
+                                        <label class="text-xs font-semibold text-slate-600 flex items-center gap-1.5 cursor-help tooltip">
+                                            <span x-text="metric.label"></span>
+                                            <svg class="w-3 h-3 text-slate-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
+                                            <span class="tooltip-content" x-text="metric.help"></span>
+                                        </label>
+                                        <span class="text-[10px] font-bold text-msk-blue bg-blue-50 px-1.5 py-0.5 rounded" x-text="project[metric.model] > 0 ? project[metric.model] + '/5' : 'Unrated'"></span>
+                                    </div>
+                                    <input type="range" min="0" max="5" step="0.5" x-model="project[metric.model]" class="w-full">
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PHASE 2: PREPARATION (Determinants & Strategies) -->
+        <div x-show="currentPhase === 'preparation'" x-transition:enter="fade-enter-active" x-transition:enter-start="fade-enter-from" class="space-y-6" x-cloak>
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                <!-- Determinant Entry -->
+                <div class="lg:col-span-3 flex flex-col bg-white rounded-xl shadow-card border border-slate-200 h-full">
+                    <div class="p-4 border-b border-slate-100 bg-slate-50">
+                        <h3 class="font-bold text-slate-700 text-xs uppercase tracking-wide flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-full bg-msk-blue text-white flex items-center justify-center font-bold">1</span>
+                            Scan Determinants
+                        </h3>
+                    </div>
+                    
+                    <div class="p-4 space-y-4 border-b border-slate-100">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">CFIR Domain</label>
+                            <select x-model="newBarrier.construct" class="block w-full rounded-md border-slate-300 text-xs py-2 px-3">
+                                <option value="">Select Domain...</option>
+                                <optgroup label="Inner Setting">
+                                    <option value="culture">Culture (Values/Norms)</option>
+                                    <option value="readiness">Readiness (Capacity)</option>
+                                    <option value="resources">Resources (Space/Time)</option>
+                                    <option value="efficacy">Self-Efficacy</option>
+                                </optgroup>
+                                <optgroup label="Outer Setting">
+                                    <option value="needs">Patient Needs</option>
+                                    <option value="policy">Policy & Incentives</option>
+                                </optgroup>
+                                <optgroup label="Individuals">
+                                    <option value="knowledge">Knowledge/Beliefs</option>
+                                </optgroup>
+                            </select>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-[10px] font-bold mb-1">
+                                <span class="text-red-500">Barrier</span>
+                                <span class="text-emerald-500">Enabler</span>
+                            </div>
+                            <input type="range" x-model="newBarrier.rating" min="-2" max="2" step="1" class="w-full h-2 bg-gradient-to-r from-red-100 via-slate-100 to-emerald-100 rounded-lg appearance-none cursor-pointer">
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Specific Factor</label>
+                            <textarea x-model="newBarrier.desc" rows="2" class="block w-full rounded-md border-slate-300 text-xs py-2 px-3 resize-none" placeholder="e.g. Workflow integration issues"></textarea>
+                        </div>
+
+                        <button @click="addBarrier()" :disabled="!newBarrier.desc || !newBarrier.construct" class="w-full bg-msk-blue text-white py-2 rounded-md text-xs font-bold shadow-sm hover:bg-msk-darkblue transition-colors disabled:opacity-50">
+                            Add to Matrix
+                        </button>
+                    </div>
+
+                    <div class="flex-1 p-2 space-y-1 bg-slate-50 overflow-y-auto max-h-[300px]">
+                        <template x-for="(b, i) in sortedDeterminants" :key="b.id">
+                            <div class="flex justify-between items-center p-2 rounded bg-white border border-slate-200 shadow-sm hover:border-msk-blue cursor-pointer group" @click="highlightBarrier(b.id)">
+                                <div class="flex items-center gap-2 overflow-hidden">
+                                    <div class="w-2 h-2 rounded-full flex-shrink-0" :class="parseInt(b.rating) < 0 ? 'bg-red-500' : 'bg-emerald-500'"></div>
+                                    <div class="flex flex-col truncate">
+                                        <span class="text-xs font-medium text-slate-700 truncate" x-text="b.desc"></span>
+                                        <span class="text-[9px] text-slate-400" x-text="b.construct"></span>
+                                    </div>
+                                </div>
+                                <button @click.stop="removeBarrier(i)" class="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">&times;</button>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Prioritization Matrix -->
+                <div class="lg:col-span-6 flex flex-col h-full">
+                    <div class="bg-white border border-b-0 border-slate-200 rounded-t-xl p-4 flex justify-between items-center">
+                        <h2 class="font-bold text-slate-700 text-xs uppercase tracking-wide flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-full bg-msk-blue text-white flex items-center justify-center font-bold">2</span>
+                            Prioritization Matrix
+                        </h2>
+                        <div class="text-[10px] text-slate-400 font-medium bg-slate-50 px-2 py-1 rounded">Drag points to refine strategy match</div>
+                    </div>
+                    <div class="bg-white rounded-b-xl shadow-card border border-slate-200 flex-1 relative overflow-hidden h-[600px]">
+                        <div id="barrier-matrix" class="w-full h-full bg-slate-50 cursor-crosshair"></div>
+                    </div>
+                </div>
+
+                <!-- Strategies Selection -->
+                <div class="lg:col-span-3 flex flex-col bg-white rounded-xl shadow-card border border-slate-200 h-full">
+                    <div class="p-4 border-b border-slate-100 bg-slate-50">
+                        <h3 class="font-bold text-slate-700 text-xs uppercase tracking-wide flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-full bg-msk-blue text-white flex items-center justify-center font-bold">3</span>
+                            ERIC Strategies
+                        </h3>
+                    </div>
+                    
+                    <div class="p-4 border-b border-slate-100 bg-sky-50/50">
+                        <h4 class="text-[10px] font-bold text-msk-blue uppercase mb-2">Evidence-Based Suggestions</h4>
+                        <div class="space-y-2 max-h-[200px] overflow-y-auto">
+                            <template x-for="strat in suggestedStrategies" :key="strat">
+                                <div class="w-full text-left text-xs bg-white border border-sky-100 text-slate-700 p-2 rounded shadow-sm hover:border-msk-blue transition-all flex justify-between items-center group cursor-pointer" @click="showStrategyDesc(strat)">
+                                    <span x-text="strat" class="truncate pr-2"></span>
+                                    <button @click.stop="addStrategy(strat)" class="w-5 h-5 flex items-center justify-center rounded-full text-msk-blue font-bold opacity-50 group-hover:opacity-100">+</button>
+                                </div>
+                            </template>
+                            <div x-show="suggestedStrategies.length === 0" class="text-[10px] text-slate-400 italic text-center py-2">
+                                Add determinants to see matched strategies.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 p-2 space-y-2 bg-slate-50 overflow-y-auto">
+                         <h4 class="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase">Project Plan</h4>
+                         <template x-for="(strat, i) in project.strategies" :key="i">
+                            <div class="bg-blue-50 border border-blue-100 rounded-md p-2 flex justify-between items-center group">
+                                <span class="text-xs text-msk-darkblue font-medium" x-text="strat.name"></span>
+                                <button @click="removeStrategy(i)" class="text-blue-300 hover:text-red-500 opacity-0 group-hover:opacity-100">&times;</button>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PHASE 3: IMPLEMENTATION (Monitoring & Adaptation) -->
+        <div x-show="currentPhase === 'implementation'" class="space-y-6" x-cloak>
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <!-- Fidelity Monitoring -->
+                <div class="lg:col-span-7 space-y-6">
+                    <div class="bg-white rounded-xl shadow-card border border-slate-200 flex flex-col">
+                        <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                             <div>
+                                <h2 class="text-lg font-bold text-msk-navy flex items-center gap-2">
+                                    <span class="w-1.5 h-6 bg-emerald-500 rounded-full"></span>
+                                    Fidelity & Adherence
+                                </h2>
+                             </div>
+                             <button @click="logFidelitySession" class="bg-emerald-600 text-white px-3 py-1.5 rounded text-xs font-bold hover:bg-emerald-700 shadow-sm flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                Log Session
+                             </button>
+                        </div>
+
+                        <div class="p-6">
+                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <template x-for="comp in project.coreComponents" :key="comp.name">
+                                    <div class="p-4 rounded-lg border border-slate-100 bg-slate-50/50">
+                                        <div class="flex justify-between items-start mb-3">
+                                            <div class="text-sm font-bold text-slate-700" x-text="comp.name"></div>
+                                            <div class="text-right">
+                                                <div class="text-xs font-bold text-msk-blue" x-text="getLatestObserved(comp.name)"></div>
+                                                <div class="text-[9px] text-slate-400">Target: <span x-text="comp.threshold"></span></div>
+                                            </div>
+                                        </div>
+                                        <div class="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden mb-1">
+                                            <div class="bg-msk-blue h-1.5 rounded-full transition-all duration-500" :style="`width: ${(getLatestCompScore(comp.name)/5)*100}%`"></div>
+                                        </div>
+                                        <div class="flex justify-between text-[9px] text-slate-400">
+                                            <span>Rating: <span x-text="getLatestCompScore(comp.name)"></span>/5</span>
+                                            <span x-text="project.fidelityHistory.length > 0 ? project.fidelityHistory[0].date : ''"></span>
+                                        </div>
+                                    </div>
+                                </template>
+                             </div>
+                             <div x-show="!project.fidelityHistory || project.fidelityHistory.length === 0" class="text-center py-12 text-sm text-slate-400 italic">
+                                  No data yet. Log your first monitoring session to see trends.
+                             </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Adaptation Log -->
+                <div class="lg:col-span-5">
+                    <div class="bg-white rounded-xl shadow-card border border-slate-200 flex flex-col">
+                         <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                            <h2 class="text-lg font-bold text-msk-navy flex items-center gap-2">
+                                <span class="w-1.5 h-6 bg-amber-400 rounded-full"></span>
+                                Adaptation Log
+                            </h2>
+                            <button @click="showAdaptationModal = true" class="text-xs font-bold text-msk-blue hover:text-msk-darkblue bg-blue-50 px-3 py-1.5 rounded-md hover:bg-blue-100">+ Log Change</button>
+                        </div>
+                        
+                        <div class="p-6">
+                            <div class="relative pl-4 border-l-2 border-slate-100 space-y-8">
+                                <template x-for="log in project.adaptations" :key="log.id">
+                                    <div class="relative pl-6">
+                                        <div class="absolute -left-[21px] top-1.5 w-3 h-3 rounded-full border-2 border-white ring-1"
+                                             :class="{'ring-amber-400 bg-amber-400': log.nature === 'Tailoring', 'ring-emerald-400 bg-emerald-400': log.nature === 'Adding', 'ring-red-400 bg-red-400': log.nature === 'Removing'}"></div>
+                                        <div class="bg-slate-50 rounded-lg border border-slate-200 p-3 shadow-sm">
+                                            <div class="flex justify-between items-start mb-1">
+                                                <span class="text-[10px] font-bold text-slate-400 uppercase" x-text="log.date"></span>
+                                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border"
+                                                      :class="{'bg-amber-50 text-amber-700 border-amber-200': log.nature === 'Tailoring', 'bg-emerald-50 text-emerald-700 border-emerald-200': log.nature === 'Adding', 'bg-red-50 text-red-700 border-red-200': log.nature === 'Removing'}"
+                                                      x-text="log.nature"></span>
+                                            </div>
+                                            <h4 class="text-sm font-bold text-slate-800 mb-1" x-text="log.what"></h4>
+                                            <p class="text-xs text-slate-600 leading-relaxed" x-text="log.reason"></p>
+                                        </div>
+                                    </div>
+                                </template>
+                                <div x-show="project.adaptations.length === 0" class="text-sm text-slate-400 italic">No adaptations recorded yet.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PHASE 4: SUSTAINMENT (PSAT) -->
+        <div x-show="currentPhase === 'sustainment'" class="bg-white rounded-xl shadow-card border border-slate-200 p-6" x-cloak>
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 pb-4 border-b border-slate-100">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800">Sustainability Assessment (PSAT)</h2>
+                    <p class="text-xs text-slate-500">Determine capacity for institutionalization</p>
+                </div>
+                <div class="flex items-center gap-3 mt-4 md:mt-0 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+                    <span class="text-xs font-bold text-slate-500 uppercase">Average Score</span>
+                    <span class="text-2xl font-black text-msk-blue" x-text="psatAverage"></span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                <div class="space-y-6">
+                    <div class="flex gap-2 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                        <input type="text" x-model="psatAssessor" placeholder="Assessor/Role" class="block w-full bg-white border-slate-300 rounded-md text-sm py-2 px-3">
+                        <button @click="logPsatAssessment" class="bg-msk-blue text-white px-4 rounded-md text-xs font-bold hover:bg-msk-darkblue">Save</button>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <template x-for="(score, domain) in project.psatScores" :key="domain">
+                            <div>
+                                <div class="flex justify-between mb-1 items-end">
+                                    <label class="text-xs font-bold text-slate-600 tracking-wide block w-3/4" x-text="psatQuestions[domain]"></label>
+                                    <span class="text-xs font-bold text-msk-blue w-6 text-right" x-text="score > 0 ? score : '-'"></span>
+                                </div>
+                                <input type="range" min="0" max="7" step="1" x-model="project.psatScores[domain]" @input="renderPsatChart" class="w-full">
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="flex flex-col h-full">
+                    <div class="flex-1 relative min-h-[300px] flex items-center justify-center">
+                        <canvas id="psatRadarChart"></canvas>
+                    </div>
+                    <div class="mt-6 border-t border-slate-100 pt-4">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase mb-3">Assessment Logs</h4>
+                        <div class="space-y-2">
+                             <template x-for="log in project.psatHistory" :key="log.date">
+                                <div class="flex justify-between text-xs py-2 border-b border-slate-50 last:border-0">
+                                    <span class="text-slate-500" x-text="log.date"></span>
+                                    <span class="font-medium text-slate-700" x-text="log.assessor"></span>
+                                    <span class="font-bold text-msk-blue" x-text="log.average"></span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BLUEPRINT (Dashboard/Print View) -->
+        <div x-show="currentPhase === 'dashboard'" class="bg-white p-10 rounded-xl shadow-card border border-slate-200 print-only-visible max-w-5xl mx-auto" x-cloak>
+             <div class="flex justify-between items-start mb-8 border-b-2 border-slate-800 pb-6">
+                <div>
+                    <h2 class="text-3xl font-black text-slate-900 uppercase tracking-tight">Implementation Blueprint</h2>
+                    <p class="text-lg text-slate-600 mt-2 font-light" x-text="project.name || 'Site Profile Pending'"></p>
+                </div>
+                <div class="text-right">
+                    <div class="text-sm font-bold text-slate-400 uppercase">Archive Date</div>
+                    <div class="text-sm font-medium text-slate-800" x-text="new Date().toLocaleDateString()"></div>
+                    <button @click="window.print()" class="no-print mt-4 text-xs font-bold text-white bg-slate-900 px-4 py-2 rounded shadow">Print Document</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-10">
+                <div class="space-y-8">
+                    <section>
+                        <h3 class="text-sm font-black text-slate-900 uppercase tracking-wider mb-4 border-b border-slate-200 pb-2">Context & Setting</h3>
+                        <p class="text-sm text-slate-600 italic leading-relaxed" x-text="project.description || 'No description provided.'"></p>
+                    </section>
+                    
+                    <section>
+                        <h3 class="text-sm font-black text-slate-900 uppercase tracking-wider mb-4 border-b border-slate-200 pb-2">Implementation Team</h3>
+                        <div class="grid grid-cols-1 gap-2">
+                            <template x-for="m in project.team" :key="m.name">
+                                <div class="flex justify-between text-sm border-b border-slate-50 pb-1">
+                                    <span class="font-bold text-slate-800" x-text="m.name"></span>
+                                    <span class="text-slate-500" x-text="m.role"></span>
+                                </div>
+                            </template>
+                        </div>
+                    </section>
+                </div>
+
+                <div class="space-y-8">
+                    <section>
+                        <h3 class="text-sm font-black text-slate-900 uppercase tracking-wider mb-4 border-b border-slate-200 pb-2">Active Strategies</h3>
+                        <div class="grid grid-cols-1 gap-2">
+                            <template x-for="s in project.strategies" :key="s.name">
+                                <div class="flex items-center gap-2 text-sm bg-slate-50 p-2 rounded border border-slate-100">
+                                    <div class="w-2 h-2 rounded-full bg-msk-blue"></div>
+                                    <span class="font-bold text-slate-700" x-text="s.name"></span>
+                                </div>
+                            </template>
+                        </div>
+                    </section>
+                    
+                    <section>
+                        <h3 class="text-sm font-black text-slate-900 uppercase tracking-wider mb-4 border-b border-slate-200 pb-2">Fidelity Protocol</h3>
+                        <div class="space-y-2">
+                            <template x-for="c in project.coreComponents" :key="c.name">
+                                <div class="text-xs">
+                                    <div class="flex justify-between font-bold">
+                                        <span x-text="c.name"></span>
+                                        <span class="text-msk-blue" x-text="c.threshold"></span>
+                                    </div>
+                                    <div class="text-slate-500" x-text="c.func"></div>
+                                </div>
+                            </template>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- MODALS -->
+    <!-- Strategy Detail -->
+    <div x-show="showStrategyModal" x-transition.opacity class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex justify-center items-center p-4" @click.self="showStrategyModal = false">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center">
+                <h2 class="text-lg font-bold text-msk-navy" x-text="currentStrategy"></h2>
+                <button @click="showStrategyModal = false" class="text-slate-400 hover:text-slate-600 text-2xl leading-none">&times;</button>
+            </div>
+            <div class="p-6">
+                 <p class="text-sm text-slate-600 leading-relaxed" x-text="currentStrategyDesc"></p>
+                 <button @click="addStrategy(currentStrategy); showStrategyModal = false" class="w-full mt-6 bg-msk-blue text-white font-bold py-2.5 rounded-lg">Select Strategy</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fidelity Definition -->
+    <div x-show="showFidelityModal" x-transition.opacity class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex justify-center items-center p-4" @click.self="showFidelityModal = false">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h2 class="text-lg font-bold text-slate-800">Protocol Definition</h2>
+                <button @click="showFidelityModal = false" class="text-slate-400">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto bg-slate-50/50 flex-1 space-y-4">
+                <template x-for="(comp, index) in project.coreComponents" :key="index">
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm relative group">
+                        <button @click="removeCoreComponent(index)" class="absolute top-3 right-3 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
+                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-4">
+                            <div><label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Component Name</label><input type="text" x-model="comp.name" class="block w-full rounded-md border-slate-300 text-sm py-1.5"></div>
+                            <div><label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Function/Purpose</label><input type="text" x-model="comp.func" class="block w-full rounded-md border-slate-300 text-sm py-1.5"></div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-4 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                            <div><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Dimension</label><select x-model="comp.dimension" class="block w-full rounded-md border-slate-300 text-xs py-1.5"><option value="Adherence">Adherence</option><option value="Dose">Dose</option><option value="Quality">Quality</option></select></div>
+                            <div><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Measurement</label><input type="text" x-model="comp.measurement" class="block w-full rounded-md border-slate-300 text-xs py-1.5" placeholder="e.g. Audit"></div>
+                            <div><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Benchmark</label><input type="text" x-model="comp.threshold" class="block w-full rounded-md border-slate-300 text-xs py-1.5" placeholder="e.g. 80%"></div>
+                        </div>
+                    </div>
+                </template>
+                <button @click="addCoreComponent" class="w-full border-2 border-dashed border-slate-300 text-slate-400 font-bold py-3 rounded-xl hover:border-msk-blue hover:text-msk-blue transition-colors bg-white">+ Add Custom Component</button>
+            </div>
+            <div class="p-4 border-t border-slate-100 bg-white flex justify-end">
+                <button @click="showFidelityModal = false" class="bg-msk-blue text-white px-6 py-2 rounded-lg font-bold text-sm">Save Configuration</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Adaptation Log Entry -->
+    <div x-show="showAdaptationModal" x-transition.opacity class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex justify-center items-center p-4" @click.self="showAdaptationModal = false">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg">
+            <div class="p-5 border-b border-slate-100"><h2 class="text-lg font-bold text-slate-800">Log Protocol Deviation</h2></div>
+            <div class="p-6 space-y-4">
+                 <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Date</label><input type="date" x-model="newAdaptation.date" class="block w-full rounded-md border-slate-300 text-sm py-2"></div>
+                 <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Adaptation Target</label><select x-model="newAdaptation.what" class="block w-full rounded-md border-slate-300 text-sm py-2"><option value="">Select...</option><option value="Workflow">Workflow Change</option><option value="Content">Content Modification</option><option value="Training">Training Adjustment</option></select></div>
+                 <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Type of Adaptation</label><select x-model="newAdaptation.nature" class="block w-full rounded-md border-slate-300 text-sm py-2"><option value="Tailoring">Tailoring</option><option value="Adding">Adding Element</option><option value="Removing">Removing Element</option></select></div>
+                 <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Reason/Rationale</label><textarea x-model="newAdaptation.reason" class="block w-full rounded-md border-slate-300 text-sm py-2" rows="2"></textarea></div>
+                 <button @click="saveAdaptation" class="w-full bg-msk-blue text-white font-bold py-2.5 rounded-lg">Save Record</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Session Logger -->
+    <div x-show="showSessionLogModal" x-transition.opacity class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex justify-center items-center p-4" @click.self="showSessionLogModal = false">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[80vh] overflow-y-auto">
+            <div class="p-5 border-b border-slate-100"><h2 class="text-lg font-bold text-slate-800">Monitoring Session</h2></div>
+            <div class="p-5 space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Date</label><input type="date" x-model="newSession.date" class="block w-full rounded-md border-slate-300 text-xs"></div>
+                    <div><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Observer</label><input type="text" x-model="newSession.observer" class="block w-full rounded-md border-slate-300 text-xs"></div>
+                </div>
+                <div class="border-t border-slate-100 pt-4 space-y-3">
+                    <template x-for="comp in project.coreComponents" :key="comp.name">
+                        <div class="p-3 bg-slate-50 rounded border border-slate-100">
+                            <div class="text-xs font-bold text-slate-700 mb-2" x-text="comp.name"></div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Observed Value</label>
+                                    <input type="text" class="block w-full rounded-md border-slate-300 text-xs py-1.5" x-model="newSession.observed[comp.name]">
+                                </div>
+                                <div>
+                                    <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Rating (1-5)</label>
+                                    <input type="number" min="1" max="5" class="block w-full rounded-md border-slate-300 text-xs py-1.5" x-model="newSession.ratings[comp.name + '_adherence']">
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+                <button @click="saveSessionLog" class="w-full bg-emerald-600 text-white font-bold py-2 rounded-lg">Log Session</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('impSciApp', () => ({
+                currentPhase: 'exploration',
+                showFidelityModal: false, 
+                showSessionLogModal: false, 
+                showAdaptationModal: false,
+                showStrategyModal: false,
+                currentStrategy: '',
+                currentStrategyDesc: '',
+                psatChart: null, 
+                psatAssessor: '',
+                resizeTimeout: null,
+
+                // PERSISTENT DATA MODEL (Template - Cleared)
+                project: Alpine.$persist({
+                    name: '',
+                    description: '',
+                    arms: [], 
+                    coreComponents: [], 
+                    team: [], 
+                    timeline: [],
+                    aim: 0, iam: 0, fim: 0, selfEfficacyEBP: 0, selfEfficacyResearch: 0, 
+                    determinants: [], 
+                    strategies: [], 
+                    adaptations: [],
+                    psatScores: { environmental: 0, funding: 0, partnerships: 0, orgCapacity: 0, programEval: 0, programAdapt: 0, communications: 0, strategicPlan: 0 }, 
+                    psatHistory: [],
+                    fidelityLog: {}, 
+                    fidelityHistory: []
+                }).as('impsci-navigator-site-plan-v1'),
+
+                // State
+                newBarrier: { id: null, desc: '', construct: '', rating: -2, importance: 50, changeability: 50 },
+                newSession: { date: new Date().toISOString().split('T')[0], observer: '', ratings: {}, observed: {} },
+                newAdaptation: { date: new Date().toISOString().split('T')[0], what: '', nature: 'Tailoring', reason: '', who: '' },
+
+                // Constants & Dictionaries
+                readinessMetrics: [
+                    { id: 1, label: 'Acceptability', model: 'aim', help: 'The perception that a given treatment or service is agreeable, palatable, or satisfactory.' },
+                    { id: 2, label: 'Appropriateness', model: 'iam', help: 'The perceived relevance or fit of the intervention for a given practice setting.' },
+                    { id: 3, label: 'Feasibility', model: 'fim', help: 'The extent to which a new treatment can be successfully used or carried out within a given agency or setting.' },
+                    { id: 4, label: 'Clinical Efficacy', model: 'selfEfficacyEBP', help: 'Confidence in delivering evidence-based practices.' },
+                    { id: 5, label: 'Evaluation Efficacy', model: 'selfEfficacyResearch', help: 'Confidence in performing research or quality assessment activities.' }
+                ],
+                armData: {
+                    'ECR': [
+                        { name: 'Identification', func: 'Screening Process', measurement: 'Rate (%)', threshold: '>80%', dimension: 'Adherence' },
+                        { name: 'Clinical Assessment', func: 'Tool Delivery', measurement: 'Chart Review', threshold: '100%', dimension: 'Quality' }
+                    ],
+                    'CPTI': [ { name: 'Response Time', func: 'Crisis Intervention', measurement: 'Minutes', threshold: '<20m', dimension: 'Adherence' } ],
+                    'NLTC': [ { name: 'Follow-up Call', func: 'Care Transition', measurement: 'Completion (%)', threshold: '>90%', dimension: 'Dose' } ]
+                },
+                availableArms: [
+                    { id: 'ECR', label: 'Clinical Workflow' },
+                    { id: 'CPTI', label: 'Community Outreach' },
+                    { id: 'NLTC', label: 'Digital Health' }
+                ],
+                phases: [ 
+                    { id: 'exploration', label: 'Exploration' }, 
+                    { id: 'preparation', label: 'Preparation' }, 
+                    { id: 'implementation', label: 'Implementation' }, 
+                    { id: 'sustainment', label: 'Sustainment' }, 
+                    { id: 'dashboard', label: 'Blueprint' } 
+                ],
+                psatQuestions: {
+                    environmental: "Political and community support",
+                    funding: "Stable, long-term funding",
+                    partnerships: "Key stakeholder connections",
+                    orgCapacity: "Internal leadership & staff",
+                    programEval: "Data collection & feedback",
+                    programAdapt: "Process of continuous tailoring",
+                    communications: "Public value demonstration",
+                    strategicPlan: "Long-term vision & mapping"
+                },
+                cfirToEric: {
+                    'culture': ['Assess Readiness', 'Build Coalition', 'Identify Champions'],
+                    'readiness': ['Assess Readiness', 'Audit and Feedback', 'Mandate Change'],
+                    'resources': ['Access New Funding', 'Change Physical Structure', 'Make Training Dynamic'],
+                    'needs': ['Involve Patients/Consumers', 'Intervene with Patients'],
+                    'policy': ['Change Liability Laws', 'Alter Incentive Structures'],
+                    'knowledge': ['Conduct Educational Meetings', 'Train-the-Trainer'],
+                    'efficacy': ['Make Training Dynamic', 'Shadowing Experts', 'Ongoing Consultation']
+                },
+                strategyDefinitions: {
+                    'Assess Readiness': 'Determine the preparedness of the organization for change.',
+                    'Audit and Feedback': 'Summarize clinical performance data and give it to clinicians.',
+                    'Build Coalition': 'Recruit and cultivate relationships with partners.',
+                    'Identify Champions': 'Prepare individuals who dedicate themselves to supporting implementation.',
+                    'Make Training Dynamic': 'Vary information delivery methods for better learning.',
+                    'Train-the-Trainer': 'Train designated individuals who then train their peers.',
+                    'Ongoing Consultation': 'Provide long-term support and coaching for staff.',
+                    'Access New Funding': 'Secure financial resources for the implementation project.'
+                },
+
+                init() {
+                    this.$watch('currentPhase', (val) => {
+                        if (val !== 'sustainment' && this.psatChart) {
+                            this.psatChart.destroy();
+                            this.psatChart = null;
+                        }
+                        setTimeout(() => {
+                            if (val === 'preparation') this.renderBarrierPlot();
+                            if (val === 'sustainment') this.renderPsatChart();
+                        }, 250);
+                    });
+                    
+                    window.addEventListener('resize', () => {
+                        clearTimeout(this.resizeTimeout);
+                        this.resizeTimeout = setTimeout(() => {
+                            if (this.currentPhase === 'preparation') this.renderBarrierPlot();
+                        }, 100);
+                    });
+                },
+
+                // Actions
+                closeAllModals() { 
+                    this.showFidelityModal = false; 
+                    this.showSessionLogModal = false; 
+                    this.showAdaptationModal = false; 
+                    this.showStrategyModal = false;
+                },
+                showStrategyDesc(name) {
+                    this.currentStrategy = name;
+                    this.currentStrategyDesc = this.strategyDefinitions[name] || 'No definition available.';
+                    this.showStrategyModal = true;
+                },
+                updateCoreComponentsFromArms() {
+                    let newComps = [];
+                    if (this.project.arms.length > 0) {
+                        this.project.arms.forEach(arm => { 
+                            if(this.armData[arm]) newComps = [...newComps, ...this.armData[arm]]; 
+                        });
+                        this.project.coreComponents = JSON.parse(JSON.stringify(newComps));
+                    }
+                },
+                addCoreComponent() { this.project.coreComponents.push({ name: 'New Component', func: '', measurement: '', threshold: '', dimension: 'Adherence' }); },
+                removeCoreComponent(index) { this.project.coreComponents.splice(index, 1); },
+                addTeamMember() { this.project.team.push({ name: '', role: '' }); },
+                removeTeamMember(index) { this.project.team.splice(index, 1); },
+                addTimelineItem() { this.project.timeline.push({ date: '', desc: '' }); },
+                removeTimelineItem(index) { this.project.timeline.splice(index, 1); },
+                addBarrier() {
+                    if(!this.newBarrier.desc || !this.newBarrier.construct) return;
+                    this.project.determinants.push({ ...this.newBarrier, id: Date.now() });
+                    this.newBarrier.desc = '';
+                    this.renderBarrierPlot();
+                },
+                removeBarrier(index) { 
+                    this.project.determinants.splice(index, 1); 
+                    this.renderBarrierPlot(); 
+                },
+                highlightBarrier(id) {
+                      const svg = d3.select("#barrier-matrix svg");
+                      svg.selectAll(".node circle, .node path").attr("stroke", "white").attr("stroke-width", 1.5);
+                      svg.selectAll(".node").filter(d => d.id === id).select("circle, path").transition().duration(200).attr("stroke", "#1E293B").attr("stroke-width", 3);
+                },
+                addStrategy(name) { 
+                    if (name && !this.project.strategies.find(s=>s.name===name)) {
+                        this.project.strategies.push({ name }); 
+                    }
+                },
+                removeStrategy(index) { this.project.strategies.splice(index, 1); },
+                logFidelitySession() {
+                    this.showSessionLogModal = true;
+                    this.newSession.ratings = {};
+                    this.newSession.observed = {};
+                    this.project.coreComponents.forEach(c => {
+                        this.newSession.ratings[c.name + '_adherence'] = 3;
+                    });
+                },
+                saveSessionLog() {
+                    if(!this.project.fidelityHistory) this.project.fidelityHistory = [];
+                    const vals = Object.values(this.newSession.ratings).map(Number);
+                    const avg = vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : 0;
+                    this.project.fidelityHistory.unshift({ 
+                        id: Date.now(), 
+                        date: this.newSession.date, 
+                        observer: this.newSession.observer, 
+                        avgScore: avg, 
+                        details: {...this.newSession.ratings},
+                        observed: {...this.newSession.observed}
+                    });
+                    this.showSessionLogModal = false;
+                },
+                getLatestCompScore(compName) {
+                    if(!this.project.fidelityHistory || this.project.fidelityHistory.length === 0) return 0;
+                    const latest = this.project.fidelityHistory[0];
+                    return latest.details ? (latest.details[compName + '_adherence'] || 0) : 0;
+                },
+                getLatestObserved(compName) {
+                     if(!this.project.fidelityHistory || this.project.fidelityHistory.length === 0) return '-';
+                     const latest = this.project.fidelityHistory[0];
+                     return latest.observed ? (latest.observed[compName] || '-') : '-';
+                },
+                saveAdaptation() {
+                    if(!this.project.adaptations) this.project.adaptations = [];
+                    this.project.adaptations.unshift({ id: Date.now(), ...this.newAdaptation });
+                    this.newAdaptation = { date: new Date().toISOString().split('T')[0], what: '', nature: 'Tailoring', reason: '', who: '' };
+                    this.showAdaptationModal = false;
+                },
+                logPsatAssessment() {
+                    if(!this.psatAssessor) return;
+                    if(!this.project.psatHistory) this.project.psatHistory = [];
+                    this.project.psatHistory.unshift({ date: new Date().toLocaleDateString(), assessor: this.psatAssessor, average: this.psatAverage });
+                    this.psatAssessor = '';
+                },
+
+                // Getters
+                get readinessScore() { 
+                    const total = (Number(this.project.aim)+Number(this.project.iam)+Number(this.project.fim)+Number(this.project.selfEfficacyEBP)+Number(this.project.selfEfficacyResearch));
+                    return total === 0 ? 0 : Math.round((total/25)*100); 
+                },
+                get readinessColorClass() { 
+                    const s = this.readinessScore;
+                    if(s === 0) return 'text-slate-300';
+                    if(s < 40) return 'text-red-500'; if(s < 70) return 'text-amber-400'; return 'text-emerald-500';
+                },
+                get progress() { return Math.min(100, (this.project.name ? 10 : 0) + (this.project.coreComponents.length > 0 ? 30 : 0) + (this.project.determinants.length > 0 ? 30 : 0) + (this.project.strategies.length > 0 ? 30 : 0)); },
+                get sortedDeterminants() { return [...this.project.determinants].sort((a, b) => parseInt(a.rating) - parseInt(b.rating)); },
+                get psatAverage() { const s = Object.values(this.project.psatScores).map(Number); return (s.reduce((a,b)=>a+b,0)/s.length).toFixed(1); },
+                get suggestedStrategies() {
+                    const activeConstructs = [...new Set(this.project.determinants.map(d => d.construct))];
+                    let suggestions = [];
+                    activeConstructs.forEach(c => {
+                        if(this.cfirToEric[c]) suggestions = [...suggestions, ...this.cfirToEric[c]];
+                    });
+                    const currentNames = this.project.strategies.map(s => s.name);
+                    return [...new Set(suggestions)].filter(s => !currentNames.includes(s));
+                },
+                isPhaseComplete(id) { 
+                    if(id === 'exploration') return this.project.coreComponents.length > 0;
+                    if(id === 'preparation') return this.project.strategies.length > 0;
+                    if(id === 'implementation') return this.project.adaptations.length > 0;
+                    return false;
+                },
+                formatDomain(d) { return { environmental: "Env. Support", funding: "Funding", partnerships: "Stakeholders", orgCapacity: "Capacity", programEval: "Eval", programAdapt: "Adapt", communications: "Comms", strategicPlan: "Planning" }[d] || d; },
+
+                downloadJSON() {
+                    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.project));
+                    const el = document.createElement('a');
+                    el.setAttribute("href", dataStr); el.setAttribute("download", "impsci_navigator_template.json");
+                    document.body.appendChild(el); el.click(); el.remove();
+                },
+
+                renderBarrierPlot() {
+                    const container = document.getElementById('barrier-matrix');
+                    if (!container) return;
+                    container.innerHTML = '';
+                    const width = container.clientWidth, height = container.clientHeight || 500;
+                    const margin = {top: 20, right: 20, bottom: 40, left: 40};
+                    const svg = d3.select(container).append("svg").attr("width", "100%").attr("height", "100%").attr("viewBox", `0 0 ${width} ${height}`).append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+                    const w = width - margin.left - margin.right, h = height - margin.top - margin.bottom;
+                    const x = d3.scaleLinear().domain([0, 100]).range([0, w]);
+                    const y = d3.scaleLinear().domain([0, 100]).range([h, 0]);
+
+                    const midX = x(50), midY = y(50);
+                    const quads = [
+                        {x: midX, y: 0, w: w-midX, h: midY, l: "Priority 1", c: "#EF4444"}, 
+                        {x: 0, y: 0, w: midX, h: midY, l: "Strategic", c: "#F59E0B"}, 
+                        {x: 0, y: midY, w: midX, h: h-midY, l: "Monitor", c: "#64748B"}, 
+                        {x: midX, y: midY, w: w-midX, h: h-midY, l: "High Potential", c: "#10B981"}
+                    ];
+                    quads.forEach(q => {
+                        svg.append("rect").attr("x", q.x).attr("y", q.y).attr("width", q.w).attr("height", q.h).attr("fill", q.c).attr("opacity", 0.05);
+                        svg.append("text").attr("x", q.x + q.w - 10).attr("y", q.y + 20).text(q.l).attr("text-anchor", "end").attr("fill", q.c).style("font-weight", "bold").style("font-size", "10px").style("text-transform", "uppercase");
+                    });
+
+                    svg.append("g").attr("transform", `translate(0,${h})`).call(d3.axisBottom(x).ticks(5).tickSize(-h)).attr("color", "#CBD5E1").select(".domain").remove();
+                    svg.append("g").call(d3.axisLeft(y).ticks(5).tickSize(-w)).attr("color", "#CBD5E1").select(".domain").remove();
+
+                    const self = this;
+                    const drag = d3.drag().on("drag", function(event, d) {
+                        d.importance = Math.max(0, Math.min(100, x.invert(event.x)));
+                        d.changeability = Math.max(0, Math.min(100, y.invert(event.y)));
+                        d3.select(this).attr("transform", `translate(${x(d.importance)},${y(d.changeability)})`);
+                    }).on("end", function() { self.project.determinants = [...self.project.determinants]; });
+
+                    const nodes = svg.selectAll(".node").data(this.project.determinants).enter().append("g")
+                        .attr("class", "node").attr("transform", d => `translate(${x(d.importance)},${y(d.changeability)})`)
+                        .style("cursor", "grab").call(drag);
+
+                    nodes.each(function(d) {
+                        const el = d3.select(this);
+                        const isBarrier = parseInt(d.rating) < 0;
+                        const color = isBarrier ? '#EF4444' : '#10B981';
+                        if(!isBarrier) {
+                            el.append("path").attr("d", d3.symbol().type(d3.symbolTriangle).size(200)).attr("fill", color).attr("stroke", "white").attr("stroke-width", 1.5);
+                        } else {
+                            el.append("circle").attr("r", 8).attr("fill", color).attr("stroke", "white").attr("stroke-width", 1.5);
+                        }
+                    });
+                },
+
+                renderPsatChart() {
+                    const canvas = document.getElementById('psatRadarChart');
+                    if (!canvas) return;
+                    const existingChart = Chart.getChart(canvas);
+                    const dataValues = Object.values(this.project.psatScores);
+                    if (existingChart) {
+                        existingChart.data.datasets[0].data = dataValues; existingChart.update();
+                    } else {
+                        new Chart(canvas, {
+                            type: 'radar',
+                            data: {
+                                labels: Object.keys(this.project.psatScores).map(this.formatDomain),
+                                datasets: [{ label: 'Capacity', data: dataValues, backgroundColor: 'rgba(0, 124, 186, 0.2)', borderColor: '#007CBA', borderWidth: 2, pointRadius: 3 }]
+                            },
+                            options: {
+                                responsive: true, maintainAspectRatio: false,
+                                scales: { r: { min: 0, max: 7, ticks: { display: false }, grid: { color: '#E2E8F0' }, pointLabels: { font: { weight: 'bold' } } } },
+                                plugins: { legend: { display: false } }
+                            }
+                        });
+                    }
+                }
+            }))
+        })
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.14.8/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+</body>
+</html>
